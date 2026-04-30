@@ -1,0 +1,19 @@
+Package: voicesorter
+Title: VoiceSorter: A Shiny Interface for Audio Clustering Experiments
+Version: 0.1.0
+Authors@R: 
+    person("Justin J. H.", "Lo", , "j.h.lo@lancaster.ac.uk", role = c("aut", "cre"))
+Description: VoiceSorter provides researchers with a simple way to create
+    interactive, customisable audio clustering experiments and collect data via
+    a Shiny app.
+License: GPL (>= 3)
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Imports: 
+    fpc,
+    howler,
+    khroma,
+    shiny,
+    shinyjqui,
+    shinyjs
