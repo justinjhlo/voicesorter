@@ -1,7 +1,17 @@
 #' Generate Shiny app for audio clustering experiment
 #' 
 #' This function generates a Shiny app with draggable audio stimuli for users to
-#' perform free classification.
+#' perform free classification. Stimuli are grouped using agglomerative 
+#' hierarchical clustering and the optimal number of clusters is determined
+#' based on the Calinski-Harabasz index. Users "check" to be informed of the
+#' number and membership of clusters formed, before they "submit" to complete
+#' the experiment.
+#' 
+#' Submitting creates a local .rds download of a list consisting of two objects:
+#' - play_log: a string vector containing a record of the stimuli played in
+#'   chronological order
+#' - clusters: a data frame with 7 columns (user_id, id, sounds, labels, top,
+#'   left, cluster)
 #' 
 #' @param exp_id Experimenter-defined identifier of the experiment
 #' @param sounds A string vector of filenames for the audio stimuli to be used
@@ -13,7 +23,7 @@
 #' @param colors to do.
 #' @param n_group If specified, the number of clusters that will be fixed.
 #' @param title Experiment title to show at the top of the app.
-#' @param instructions to do.
+#' @param instructions Instructions to users to show in the sidebar.
 #' @param uid_format to do.
 #' 
 #' @import shiny
@@ -154,7 +164,8 @@ voicesorter <- function(exp_id, sounds, dir, labels, colors = NULL, n_group = 0,
       if(ncol(rvals$positions) >= 4){
         for(i in 1:n_stim) shinyjs::removeClass(sprintf("stim%03d", i), paste0("stim-c", rvals$positions[i,4]))
         rvals$positions[,4] <- NULL # remove cluster information
-        shinyjs::disable("submit")
+        shinyjs::hide("submit")
+        # shinyjs::disable("submit")
       }
     })
     

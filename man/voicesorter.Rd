@@ -34,11 +34,24 @@ specified order). Must be the same length as sounds.}
 
 \item{title}{Experiment title to show at the top of the app.}
 
-\item{instructions}{to do.}
+\item{instructions}{Instructions to users to show in the sidebar.}
 
 \item{uid_format}{to do.}
 }
 \description{
 This function generates a Shiny app with draggable audio stimuli for users to
-perform free classification.
+perform free classification. Stimuli are grouped using agglomerative
+hierarchical clustering and the optimal number of clusters is determined
+based on the Calinski-Harabasz index. Users "check" to be informed of the
+number and membership of clusters formed, before they "submit" to complete
+the experiment.
+}
+\details{
+Submitting creates a local .rds download of a list consisting of two objects:
+\itemize{
+\item play_log: a string vector containing a record of the stimuli played in
+chronological order
+\item clusters: a data frame with 7 columns (user_id, id, sounds, labels, top,
+left, cluster)
+}
 }
