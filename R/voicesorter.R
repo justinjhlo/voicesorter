@@ -13,8 +13,8 @@
 #' - time_completed: duration of experiment, from when the user submits the user
 #'   id to when they submit the final clustering
 #' - play_log: a data frame with 3 columns (time, id, sound)
-#' - clusters: a data frame with 7 columns (user_id, id, sounds, labels, top,
-#'   left, cluster)
+#' - clusters: a data frame with 7 columns (user_id, id, sound, label, top,
+#'   left, cluster) and one row corresponding to each sound
 #' 
 #' @param exp_id Experimenter-defined identifier of the experiment
 #' @param sounds A string vector of filenames for the audio stimuli to be used
@@ -41,6 +41,7 @@ voicesorter <- function(exp_id, sounds, dir, labels, colors = NULL, n_group = 0,
   stopifnot("n_group must be a positive integer greater than 1" = n_group == 0 | (is.integer(n_group) & n_group > 1))
   
   addResourcePath("media", dir)
+  sounds_orig <- sounds
   sounds <- paste0("media/", sounds)
   n_stim <- length(sounds)
 
@@ -222,7 +223,8 @@ voicesorter <- function(exp_id, sounds, dir, labels, colors = NULL, n_group = 0,
       },
       content = function(file){
         t_end <- format(Sys.time(), digits = 4)
-        out_content <- cbind(userid = rep(rvals$userid, n_stim), id = rvals$positions$id, sounds, labels, rvals$positions[, -1])
+        rvals$play_log$sound <- sounds_orig[match(rvals$play_log$sound, sounds)]
+        out_content <- cbind(userid = rep(rvals$userid, n_stim), id = rvals$positions$id, sound = sounds_orig, label = labels, rvals$positions[, -1])
         saveRDS(list(session_date = Sys.Date(),
                      time_completed = round(as.numeric(as.POSIXct(t_end) - as.POSIXct(rvals$t_start)), 3),
                      play_log = rvals$play_log,
@@ -243,7 +245,7 @@ voicesorter <- function(exp_id, sounds, dir, labels, colors = NULL, n_group = 0,
       }
     )
     
-    # Quit app
+    # quit app
     observeEvent(input$exitapp,{
       stopApp()
     })

@@ -54,7 +54,7 @@ objects:
 \item time_completed: duration of experiment, from when the user submits the user
 id to when they submit the final clustering
 \item play_log: a data frame with 3 columns (time, id, sound)
-\item clusters: a data frame with 7 columns (user_id, id, sounds, labels, top,
-left, cluster)
+\item clusters: a data frame with 7 columns (user_id, id, sound, label, top,
+left, cluster) and one row corresponding to each sound
 }
 }
