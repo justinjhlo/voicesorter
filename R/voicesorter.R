@@ -7,9 +7,12 @@
 #' number and membership of clusters formed, before they "submit" to complete
 #' the experiment.
 #' 
-#' Submitting creates a local .rds download of a list consisting of two objects:
-#' - play_log: a string vector containing a record of the stimuli played in
-#'   chronological order
+#' Submitting creates a local .rds download of a list consisting of four
+#' objects:
+#' - session_date: date when experiment is completed
+#' - time_completed: duration of experiment, from when the user submits the user
+#'   id to when they submit the final clustering
+#' - play_log: a data frame with 3 columns (time, id, sound)
 #' - clusters: a data frame with 7 columns (user_id, id, sounds, labels, top,
 #'   left, cluster)
 #' 
@@ -67,6 +70,7 @@ voicesorter <- function(exp_id, sounds, dir, labels, colors = NULL, n_group = 0,
   click_to_play <- function(id, sound, t = 1500){
     shinyjs::onclick(id, function(e){
       if(e$shiftKey){
+        shinyjs::runjs(paste0("Shiny.setInputValue('time_playing', '", format(Sys.time(), digits = 4), "', {priority: 'event'});"))
         shinyjs::addClass(id, "stim-playing")
         howler::playSound(sound)
         shinyjs::runjs(paste0("Shiny.setInputValue('curr_playing', '", id, "___", sound, "', {priority: 'event'});"))
@@ -126,9 +130,10 @@ voicesorter <- function(exp_id, sounds, dir, labels, colors = NULL, n_group = 0,
     rvals <- reactiveValues(orig_coords = data.frame(top = numeric(1), left = numeric(1)),
                             positions = data.frame(top = numeric(1), left = numeric(1)),
                             all_dropped = FALSE,
+                            t_start = 0,
                             userid = "",
                             validation_msg = "",
-                            play_log = c(),
+                            play_log = data.frame(time = numeric(0), id = character(0), sound = character(0)),
                             submit_flag = FALSE)
     
     # add draggables and droppable
@@ -148,6 +153,7 @@ voicesorter <- function(exp_id, sounds, dir, labels, colors = NULL, n_group = 0,
       if(input$userid != ""){
         rvals$userid <- input$userid
         removeModal()
+        rvals$t_start <- format(Sys.time(), digits = 4)
       }
     })
     
@@ -155,7 +161,10 @@ voicesorter <- function(exp_id, sounds, dir, labels, colors = NULL, n_group = 0,
     click_to_play_all()
     
     observeEvent(input$curr_playing,{
-      rvals$play_log <- append(rvals$play_log, input$curr_playing)
+      splitloc <- regexpr("___", input$curr_playing)
+      rvals$play_log[nrow(rvals$play_log) + 1, ] <- list(time = round(as.numeric(as.POSIXct(input$time_playing) - as.POSIXct(rvals$t_start)), 3),
+                                                         id = substr(input$curr_playing, 1, splitloc - 1),
+                                                         sound = substr(input$curr_playing, splitloc + 3, nchar(input$curr_playing)))
     })
 
     # remove border styling if any stim is dragged after clustering
@@ -212,8 +221,13 @@ voicesorter <- function(exp_id, sounds, dir, labels, colors = NULL, n_group = 0,
         paste0(exp_id, "_", rvals$userid, "_", Sys.Date(), ".rds")
       },
       content = function(file){
+        t_end <- format(Sys.time(), digits = 4)
         out_content <- cbind(userid = rep(rvals$userid, n_stim), id = rvals$positions$id, sounds, labels, rvals$positions[, -1])
-        saveRDS(list(play_log = rvals$play_log, clusters = out_content), file)
+        saveRDS(list(session_date = Sys.Date(),
+                     time_completed = round(as.numeric(as.POSIXct(t_end) - as.POSIXct(rvals$t_start)), 3),
+                     play_log = rvals$play_log,
+                     clusters = out_content),
+                file)
         
         # prompt exit
         rvals$submit_flag <- TRUE

@@ -47,10 +47,13 @@ number and membership of clusters formed, before they "submit" to complete
 the experiment.
 }
 \details{
-Submitting creates a local .rds download of a list consisting of two objects:
+Submitting creates a local .rds download of a list consisting of four
+objects:
 \itemize{
-\item play_log: a string vector containing a record of the stimuli played in
-chronological order
+\item session_date: date when experiment is completed
+\item time_completed: duration of experiment, from when the user submits the user
+id to when they submit the final clustering
+\item play_log: a data frame with 3 columns (time, id, sound)
 \item clusters: a data frame with 7 columns (user_id, id, sounds, labels, top,
 left, cluster)
 }
