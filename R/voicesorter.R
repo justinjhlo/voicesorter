@@ -25,8 +25,11 @@
 #'     specified order). Must be the same length as sounds.
 #' @param colors to do.
 #' @param n_group If specified, the number of clusters that will be fixed.
-#' @param title Experiment title to show at the top of the app.
-#' @param instructions Instructions to users to show in the sidebar.
+#' @param title Experiment title to show at the top of the app. Defaults to "Voice sorter".
+#' @param instructions Instructions to users to show in the sidebar. Defaults to "Drag the circles into the box and group them by the voice you hear".
+#' @param instructions_userid Instructions to users to enter user ID in the start modal dialog. Defaults to "Enter user code:".
+#' @param instructions_end Instructions to users in the end modal dialog. Defaults to thanking user for participation and instructing user to click to exit.
+#' @param background_image Path specifying the image to use as the background of the sink. Currently should be stored in a subfolder called "images".
 #' @param uid_format to do.
 #' 
 #' @import shiny
@@ -34,7 +37,10 @@
 #' @export
 voicesorter <- function(exp_id, sounds, dir, labels, colors = NULL, n_group = 0,
                         title = "Voice sorter",
-                        instructions = "Drag the circles into the box and group them by the voice you hear",
+                        instructions = NULL,
+                        instructions_userid = NULL,
+                        instructions_end = NULL,
+                        background_image = NULL,
                         uid_format = NULL){
   stopifnot("sound file not found" = file.exists(file.path(dir, sounds)))
   stopifnot("number of sound files not equal to number of labels" = length(sounds) == length(labels))
@@ -44,14 +50,31 @@ voicesorter <- function(exp_id, sounds, dir, labels, colors = NULL, n_group = 0,
   sounds_orig <- sounds
   sounds <- paste0("media/", sounds)
   n_stim <- length(sounds)
-
-  if(is.null(colors)){
-    if(n_stim >= 24) colors <- c(khroma::color("discreterainbow")(23), "#777777")
-    else colors <- c(khroma::color("discreterainbow")(n_stim - 1), "#777777")
-  }
-  cluster_class <- paste0("border: 2px solid ", colors)
-  names(cluster_class) <- paste0(".stim-c", 1:length(colors))
   
+  # set default instructions
+  if(is.null(instructions)) instructions <- "Drag the circles into the box and group them by the voice you hear"
+  if(is.null(instructions_userid)) instructions_userid <- "Enter user code:"
+  if(is.null(instructions_end)) instructions_end <- "Thank you for completing the experiment. Once download is complete, click the button below to exit."
+
+  # set classes for border color
+  if(is.null(colors)){
+    cluster_class <- c(".stim-c1-1" = "border: 3px solid #777777")
+    for(i in 1:23){
+      color_steps <- c(khroma::color("discreterainbow")(i), "#777777")
+      color_steps <- paste0("border: 3px solid ", color_steps)
+      names(color_steps) <- paste0(".stim-c", i + 1, "-", 1:(i+1))
+      cluster_class <- c(cluster_class, color_steps)
+    }
+  }
+  
+  # set class for sink
+  sink_class <- c("position: relative", "top: 10px", "left: 0px",
+                  "height: 600px", "width: 95%", "border: 3px solid black")
+  if(!is.null(background_image)){
+    addResourcePath("images", "images")
+    sink_class <- c(sink_class, paste0("background-image: url('images/", background_image ,"')"))
+  }
+
   insert_buttons <- function(){
     for(i in 1:n_stim){
       insertUI(
@@ -93,8 +116,7 @@ voicesorter <- function(exp_id, sounds, dir, labels, colors = NULL, n_group = 0,
                     "border: 1px solid #7f7f7f", "text-align: center", "margin: 5px",
                     "background-color: rgba(127,127,127,0.2)", "z-index: 2"),
         ".stim-playing" = "background-color: rgba(127,127,127,0.5)",
-        ".stim-sink" = c("position: relative", "top: 10px", "left: 0px",
-                         "height: 600px", "width: 95%", "border: 3px solid black")
+        ".stim-sink" = sink_class
       ),
       as.list(cluster_class)
     )),
@@ -144,7 +166,7 @@ voicesorter <- function(exp_id, sounds, dir, labels, colors = NULL, n_group = 0,
     # demand user code
     showModal({
       modalDialog(
-        textInput("userid", "Enter user code:", placeholder = "abc1234"),
+        textInput("userid", instructions_userid, placeholder = "abc1234"),
         footer = actionButton("submitid", "Submit"),
         size = "s"
       )
@@ -163,7 +185,7 @@ voicesorter <- function(exp_id, sounds, dir, labels, colors = NULL, n_group = 0,
     
     observeEvent(input$curr_playing,{
       splitloc <- regexpr("___", input$curr_playing)
-      rvals$play_log[nrow(rvals$play_log) + 1, ] <- list(time = round(as.numeric(as.POSIXct(input$time_playing) - as.POSIXct(rvals$t_start)), 3),
+      rvals$play_log[nrow(rvals$play_log) + 1, ] <- list(time = round(as.numeric(difftime(as.POSIXct(input$time_playing), as.POSIXct(rvals$t_start), units = "secs")), 3),  #round(as.numeric(as.POSIXct(input$time_playing) - as.POSIXct(rvals$t_start)), 3),
                                                          id = substr(input$curr_playing, 1, splitloc - 1),
                                                          sound = substr(input$curr_playing, splitloc + 3, nchar(input$curr_playing)))
     })
@@ -172,7 +194,8 @@ voicesorter <- function(exp_id, sounds, dir, labels, colors = NULL, n_group = 0,
     observeEvent(sapply(1:n_stim, function(x) input[[sprintf("stim%03d_position", x)]]), {
       rvals$validation_msg <- ""
       if(ncol(rvals$positions) >= 4){
-        for(i in 1:n_stim) shinyjs::removeClass(sprintf("stim%03d", i), paste0("stim-c", rvals$positions[i,4]))
+        n_cluster <- max(rvals$positions[,4])
+        for(i in 1:n_stim) shinyjs::removeClass(sprintf("stim%03d", i), paste0("stim-c", n_cluster, "-", rvals$positions[i,4]))
         rvals$positions[,4] <- NULL # remove cluster information
         shinyjs::hide("submit")
         # shinyjs::disable("submit")
@@ -203,7 +226,7 @@ voicesorter <- function(exp_id, sounds, dir, labels, colors = NULL, n_group = 0,
         rvals$positions <- cbind(rvals$positions, cluster = cutree(hc, k = optimal_k))
 
         # color border by cluster
-        for(i in 1:n_stim) shinyjs::addClass(sprintf("stim%03d", i), paste0("stim-c", rvals$positions[i,4]))
+        for(i in 1:n_stim) shinyjs::addClass(sprintf("stim%03d", i), paste0("stim-c", optimal_k, "-", rvals$positions[i,4]))
         
         rvals$validation_msg <- paste("You have made", optimal_k, "groups.")
         
@@ -226,7 +249,7 @@ voicesorter <- function(exp_id, sounds, dir, labels, colors = NULL, n_group = 0,
         rvals$play_log$sound <- sounds_orig[match(rvals$play_log$sound, sounds)]
         out_content <- cbind(userid = rep(rvals$userid, n_stim), id = rvals$positions$id, sound = sounds_orig, label = labels, rvals$positions[, -1])
         saveRDS(list(session_date = Sys.Date(),
-                     time_completed = round(as.numeric(as.POSIXct(t_end) - as.POSIXct(rvals$t_start)), 3),
+                     time_completed = round(as.numeric(difftime(as.POSIXct(t_end), as.POSIXct(rvals$t_start), units = "secs")), 3),
                      play_log = rvals$play_log,
                      clusters = out_content),
                 file)
@@ -236,7 +259,7 @@ voicesorter <- function(exp_id, sounds, dir, labels, colors = NULL, n_group = 0,
         if(rvals$submit_flag){
           showModal({
             modalDialog(
-              p("Thank you for completing the experiment. Once download is complete, click the button below to exit."),
+              p(instructions_end),
               footer = actionButton("exitapp", "Exit"),
               size = "s"
             )

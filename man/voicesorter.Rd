@@ -12,7 +12,10 @@ voicesorter(
   colors = NULL,
   n_group = 0,
   title = "Voice sorter",
-  instructions = "Drag the circles into the box and group them by the voice you hear",
+  instructions = NULL,
+  instructions_userid = NULL,
+  instructions_end = NULL,
+  background_image = NULL,
   uid_format = NULL
 )
 }
@@ -32,9 +35,15 @@ specified order). Must be the same length as sounds.}
 
 \item{n_group}{If specified, the number of clusters that will be fixed.}
 
-\item{title}{Experiment title to show at the top of the app.}
+\item{title}{Experiment title to show at the top of the app. Defaults to "Voice sorter".}
 
-\item{instructions}{Instructions to users to show in the sidebar.}
+\item{instructions}{Instructions to users to show in the sidebar. Defaults to "Drag the circles into the box and group them by the voice you hear".}
+
+\item{instructions_userid}{Instructions to users to enter user ID in the start modal dialog. Defaults to "Enter user code:".}
+
+\item{instructions_end}{Instructions to users in the end modal dialog. Defaults to thanking user for participation and instructing user to click to exit.}
+
+\item{background_image}{Path specifying the image to use as the background of the sink. Currently should be stored in a subfolder called "images".}
 
 \item{uid_format}{to do.}
 }
